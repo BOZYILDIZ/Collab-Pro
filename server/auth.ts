@@ -101,6 +101,7 @@ export async function getUserFromToken(token: string) {
   const payload = verifyToken(token);
   if (!payload) return null;
 
-  return getUserById(payload.userId);
+  const user = await getUserById(payload.userId);
+  return user || null;
 }
 

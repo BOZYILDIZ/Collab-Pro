@@ -26,7 +26,10 @@ export default function Login() {
   const loginMutation = trpc.auth.login.useMutation({
     onSuccess: () => {
       toast.success("Connexion réussie !");
-      window.location.href = "/";
+      // Wait a bit for cookie to be set
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 100);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -36,7 +39,10 @@ export default function Login() {
   const registerMutation = trpc.auth.register.useMutation({
     onSuccess: () => {
       toast.success("Compte créé avec succès !");
-      window.location.href = "/";
+      // Wait a bit for cookie to be set
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 100);
     },
     onError: (error) => {
       toast.error(error.message);
