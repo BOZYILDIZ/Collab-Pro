@@ -89,9 +89,9 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <Link href="/chat">
-                <a className="text-sm text-primary hover:underline">
+                <span className="text-sm text-primary hover:underline cursor-pointer">
                   Aller au Chat →
-                </a>
+                </span>
               </Link>
             </CardContent>
           </Card>
@@ -108,9 +108,9 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <Link href="/notes">
-                <a className="text-sm text-primary hover:underline">
+                <span className="text-sm text-primary hover:underline cursor-pointer">
                   Aller aux Notes →
-                </a>
+                </span>
               </Link>
             </CardContent>
           </Card>
@@ -127,9 +127,9 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <Link href="/appointments">
-                <a className="text-sm text-primary hover:underline">
+                <span className="text-sm text-primary hover:underline cursor-pointer">
                   Aller aux Rendez-vous →
-                </a>
+                </span>
               </Link>
             </CardContent>
           </Card>
