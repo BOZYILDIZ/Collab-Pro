@@ -6,7 +6,11 @@ import { MessageSquare, FileText, Calendar, Clock, Users, TrendingUp } from "luc
 import { Link } from "wouter";
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth({ redirectOnUnauthenticated: true });
+
+  if (loading || !user) {
+    return null; // Will redirect to /login
+  }
   
   // Fetch some stats (you can implement these queries later)
   const stats = [
