@@ -7,7 +7,11 @@ import {
   calendars, InsertCalendar, events, InsertEvent, eventAttendees, InsertEventAttendee,
   appointmentRequests, InsertAppointmentRequest, appointmentInvitees, InsertAppointmentInvitee,
   notificationSubscriptions, InsertNotificationSubscription, notifications, InsertNotification,
-  auditLogs, InsertAuditLog, availabilitySlots, InsertAvailabilitySlot
+  auditLogs, InsertAuditLog, availabilitySlots, InsertAvailabilitySlot,
+  projects, InsertProject, projectMembers, InsertProjectMember,
+  tasks, InsertTask, taskComments, InsertTaskComment, taskDependencies, InsertTaskDependency,
+  sprints, InsertSprint, taskAttachments, InsertTaskAttachment,
+  noteTemplates, InsertNoteTemplate
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -510,5 +514,204 @@ export async function getAuditLogs(orgId: number, limit = 100) {
     .where(eq(auditLogs.orgId, orgId))
     .orderBy(desc(auditLogs.createdAt))
     .limit(limit);
+}
+
+
+
+
+// ============ PROJECT MANAGEMENT ============
+
+export async function createProject(data: InsertProject) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(projects).values(data);
+  return Number(result.insertId);
+}
+
+export async function getProjectById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(projects).where(eq(projects.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getProjectsByOrg(orgId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(projects).where(eq(projects.orgId, orgId));
+}
+
+export async function getUserProjects(userId: number, orgId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  // Get projects where user is a member
+  return db
+    .select({ 
+      id: projects.id,
+      name: projects.name,
+      description: projects.description,
+      status: projects.status,
+      startDate: projects.startDate,
+      endDate: projects.endDate,
+      orgId: projects.orgId,
+      ownerId: projects.ownerId,
+      createdAt: projects.createdAt,
+      updatedAt: projects.updatedAt,
+    })
+    .from(projects)
+    .innerJoin(projectMembers, eq(projects.id, projectMembers.projectId))
+    .where(and(
+      eq(projects.orgId, orgId),
+      eq(projectMembers.userId, userId)
+    ));
+}
+
+export async function updateProject(id: number, data: Partial<InsertProject>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(projects).set(data).where(eq(projects.id, id));
+}
+
+export async function deleteProject(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(projects).where(eq(projects.id, id));
+}
+
+// Project members
+export async function addProjectMember(data: InsertProjectMember) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(projectMembers).values(data);
+  return Number(result.insertId);
+}
+
+export async function getProjectMembers(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      membership: projectMembers,
+      user: users,
+    })
+    .from(projectMembers)
+    .leftJoin(users, eq(projectMembers.userId, users.id))
+    .where(eq(projectMembers.projectId, projectId));
+}
+
+export async function removeProjectMember(projectId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(projectMembers)
+    .where(and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, userId)));
+}
+
+// Tasks
+export async function createTask(data: InsertTask) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(tasks).values(data);
+  return Number(result.insertId);
+}
+
+export async function getTaskById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getTasksByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      task: tasks,
+      assignee: users,
+      reporter: users,
+    })
+    .from(tasks)
+    .leftJoin(users, eq(tasks.assigneeId, users.id))
+    .where(eq(tasks.projectId, projectId))
+    .orderBy(tasks.position);
+}
+
+export async function updateTask(id: number, data: Partial<InsertTask>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(tasks).set(data).where(eq(tasks.id, id));
+}
+
+export async function deleteTask(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(tasks).where(eq(tasks.id, id));
+}
+
+export async function getSubtasks(parentTaskId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(tasks).where(eq(tasks.parentTaskId, parentTaskId));
+}
+
+// Task comments
+export async function createTaskComment(data: InsertTaskComment) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(taskComments).values(data);
+  return Number(result.insertId);
+}
+
+export async function getTaskComments(taskId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      comment: taskComments,
+      user: users,
+    })
+    .from(taskComments)
+    .leftJoin(users, eq(taskComments.userId, users.id))
+    .where(eq(taskComments.taskId, taskId))
+    .orderBy(taskComments.createdAt);
+}
+
+// Sprints
+export async function createSprint(data: InsertSprint) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(sprints).values(data);
+  return Number(result.insertId);
+}
+
+export async function getSprintsByProject(projectId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(sprints).where(eq(sprints.projectId, projectId));
+}
+
+export async function updateSprint(id: number, data: Partial<InsertSprint>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(sprints).set(data).where(eq(sprints.id, id));
+}
+
+
+
+// ============================================================================
+// NOTE TEMPLATES
+// ============================================================================
+
+export async function getNoteTemplates() {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(noteTemplates);
+}
+
+export async function getNoteTemplate(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(noteTemplates).where(eq(noteTemplates.id, id)).limit(1);
+  return result[0];
 }
 

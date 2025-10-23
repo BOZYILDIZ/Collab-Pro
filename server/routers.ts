@@ -358,6 +358,17 @@ export const appRouter = router({
       .query(async ({ ctx, input }) => {
         return db.searchNotes(ctx.user.id, input.orgId, input.query);
       }),
+    
+    templates: protectedProcedure
+      .query(async () => {
+        return db.getNoteTemplates();
+      }),
+    
+    getTemplate: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return db.getNoteTemplate(input.id);
+      }),
   }),
 
   calendars: router({
@@ -576,7 +587,298 @@ export const appRouter = router({
         return db.getAuditLogs(input.orgId, input.limit);
       }),
   }),
+
+  // ============ PROJECT MANAGEMENT ============
+  
+  projects: router({
+    list: protectedProcedure
+      .input(z.object({ orgId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getProjectsByOrg(input.orgId);
+      }),
+    
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return db.getProjectById(input.id);
+      }),
+    
+    create: protectedProcedure
+      .input(z.object({
+        orgId: z.number(),
+        name: z.string().min(1).max(255),
+        description: z.string().optional(),
+        visibility: z.enum(["private", "team", "public"]).default("team"),
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+        color: z.string().optional(),
+        icon: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const projectId = await db.createProject({
+          ...input,
+          ownerId: ctx.user!.id,
+          status: "active",
+        });
+        
+        await db.addProjectMember({
+          projectId,
+          userId: ctx.user!.id,
+          role: "owner",
+        });
+        
+        return { id: projectId };
+      }),
+    
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).max(255).optional(),
+        description: z.string().optional(),
+        visibility: z.enum(["private", "team", "public"]).optional(),
+        status: z.enum(["active", "archived", "completed"]).optional(),
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+        color: z.string().optional(),
+        icon: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updateProject(id, data);
+        return { success: true };
+      }),
+    
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteProject(input.id);
+        return { success: true };
+      }),
+    
+    getMembers: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getProjectMembers(input.projectId);
+      }),
+    
+    addMember: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        userId: z.number(),
+        role: z.enum(["owner", "admin", "member", "viewer"]).default("member"),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await db.addProjectMember(input);
+        return { id };
+      }),
+    
+    removeMember: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        userId: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.removeProjectMember(input.projectId, input.userId);
+        return { success: true };
+      }),
+  }),
+  
+  tasks: router({
+    list: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getTasksByProject(input.projectId);
+      }),
+    
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return db.getTaskById(input.id);
+      }),
+    
+    create: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        parentTaskId: z.number().optional(),
+        title: z.string().min(1).max(500),
+        description: z.string().optional(),
+        status: z.string().default("todo"),
+        priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
+        assigneeId: z.number().optional(),
+        dueDate: z.date().optional(),
+        startDate: z.date().optional(),
+        estimatedHours: z.number().optional(),
+        tags: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const taskId = await db.createTask({
+          ...input,
+          reporterId: ctx.user!.id,
+        });
+        return { id: taskId };
+      }),
+    
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string().min(1).max(500).optional(),
+        description: z.string().optional(),
+        status: z.string().optional(),
+        priority: z.enum(["low", "medium", "high", "urgent"]).optional(),
+        assigneeId: z.number().optional(),
+        dueDate: z.date().optional(),
+        startDate: z.date().optional(),
+        estimatedHours: z.number().optional(),
+        actualHours: z.number().optional(),
+        tags: z.string().optional(),
+        position: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updateTask(id, data);
+        return { success: true };
+      }),
+    
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteTask(input.id);
+        return { success: true };
+      }),
+    
+    getSubtasks: protectedProcedure
+      .input(z.object({ parentTaskId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getSubtasks(input.parentTaskId);
+      }),
+    
+    addComment: protectedProcedure
+      .input(z.object({
+        taskId: z.number(),
+        content: z.string().min(1),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const id = await db.createTaskComment({
+          ...input,
+          userId: ctx.user!.id,
+        });
+        return { id };
+      }),
+    
+    getComments: protectedProcedure
+      .input(z.object({ taskId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getTaskComments(input.taskId);
+      }),
+  }),
+  
+  sprints: router({
+    list: protectedProcedure
+      .input(z.object({ projectId: z.number() }))
+      .query(async ({ input }) => {
+        return db.getSprintsByProject(input.projectId);
+      }),
+    
+    create: protectedProcedure
+      .input(z.object({
+        projectId: z.number(),
+        name: z.string().min(1).max(255),
+        goal: z.string().optional(),
+        startDate: z.date(),
+        endDate: z.date(),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await db.createSprint(input);
+        return { id };
+      }),
+    
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).max(255).optional(),
+        goal: z.string().optional(),
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+        status: z.enum(["planned", "active", "completed"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        await db.updateSprint(id, data);
+        return { success: true };
+      }),
+  }),
+  
+  search: router({
+    global: protectedProcedure
+      .input(z.object({
+        query: z.string().min(1),
+        types: z.array(z.enum(["notes", "tasks", "messages", "events", "users"])).optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const { query, types } = input;
+        const searchTypes = types || ["notes", "tasks", "messages", "events", "users"];
+        const results: any = {
+          notes: [],
+          tasks: [],
+          messages: [],
+          events: [],
+          users: [],
+        };
+
+        // Search notes
+        if (searchTypes.includes("notes")) {
+          results.notes = await db.searchNotes(ctx.user.id, 1, query);
+        }
+
+        // Search tasks
+        if (searchTypes.includes("tasks")) {
+          const userProjects = await db.getUserProjects(ctx.user.id, 1);
+          const allTasks: any[] = [];
+          for (const project of userProjects) {
+            const projectTasks = await db.getTasksByProject(project.id);
+            allTasks.push(...projectTasks);
+          }
+          results.tasks = allTasks.filter((task: any) =>
+            (task.title && task.title.toLowerCase().includes(query.toLowerCase())) ||
+            (task.description && task.description.toLowerCase().includes(query.toLowerCase()))
+          ).slice(0, 20);
+        }
+
+        // Search messages
+        if (searchTypes.includes("messages")) {
+          const userChats = await db.getUserChats(ctx.user.id);
+          const allMessages: any[] = [];
+          for (const chat of userChats) {
+            const messages = await db.getChatMessages(chat.chat.id);
+            allMessages.push(...messages.filter((msg: any) =>
+              msg.message.content.toLowerCase().includes(query.toLowerCase())
+            ));
+          }
+          results.messages = allMessages.slice(0, 20);
+        }
+
+        // Search events
+        if (searchTypes.includes("events")) {
+          const userCalendars = await db.getUserCalendars(ctx.user.id, 1);
+          const allEvents: any[] = [];
+          for (const calendar of userCalendars) {
+            const events = await db.getCalendarEvents(calendar.id);
+            allEvents.push(...events.filter((event: any) =>
+              event.title.toLowerCase().includes(query.toLowerCase()) ||
+              (event.description && event.description.toLowerCase().includes(query.toLowerCase()))
+            ));
+          }
+          results.events = allEvents.slice(0, 20);
+        }
+
+        // Search users
+        if (searchTypes.includes("users")) {
+          results.users = await db.searchUsers(query);
+        }
+
+        return results;
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
-

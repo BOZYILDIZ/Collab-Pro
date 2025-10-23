@@ -355,3 +355,172 @@ export const availabilitySlots = mysqlTable("availability_slots", {
 export type AvailabilitySlot = typeof availabilitySlots.$inferSelect;
 export type InsertAvailabilitySlot = typeof availabilitySlots.$inferInsert;
 
+
+
+// ============ PROJECT MANAGEMENT ============
+
+/**
+ * Projects table
+ */
+export const projects = mysqlTable("projects", {
+  id: int("id").autoincrement().primaryKey(),
+  orgId: int("orgId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  visibility: mysqlEnum("visibility", ["private", "team", "public"]).default("team").notNull(),
+  status: mysqlEnum("status", ["active", "archived", "completed"]).default("active").notNull(),
+  startDate: timestamp("startDate"),
+  endDate: timestamp("endDate"),
+  ownerId: int("ownerId").notNull(),
+  color: varchar("color", { length: 7 }).default("#3b82f6"),
+  icon: varchar("icon", { length: 50 }),
+  settingsJson: text("settingsJson"), // Kanban columns, automation rules, etc.
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  orgIdx: index("project_org_idx").on(table.orgId),
+  ownerIdx: index("project_owner_idx").on(table.ownerId),
+}));
+
+export type Project = typeof projects.$inferSelect;
+export type InsertProject = typeof projects.$inferInsert;
+
+/**
+ * Project members
+ */
+export const projectMembers = mysqlTable("project_members", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  userId: int("userId").notNull(),
+  role: mysqlEnum("role", ["owner", "admin", "member", "viewer"]).default("member").notNull(),
+  joinedAt: timestamp("joinedAt").defaultNow().notNull(),
+}, (table) => ({
+  projectIdx: index("project_member_project_idx").on(table.projectId),
+  userIdx: index("project_member_user_idx").on(table.userId),
+}));
+
+export type ProjectMember = typeof projectMembers.$inferSelect;
+export type InsertProjectMember = typeof projectMembers.$inferInsert;
+
+/**
+ * Tasks table
+ */
+export const tasks = mysqlTable("tasks", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  parentTaskId: int("parentTaskId"), // For subtasks
+  title: varchar("title", { length: 500 }).notNull(),
+  description: text("description"),
+  status: varchar("status", { length: 50 }).default("todo").notNull(), // Customizable per project
+  priority: mysqlEnum("priority", ["low", "medium", "high", "urgent"]).default("medium"),
+  assigneeId: int("assigneeId"),
+  reporterId: int("reporterId").notNull(),
+  dueDate: timestamp("dueDate"),
+  startDate: timestamp("startDate"),
+  estimatedHours: int("estimatedHours"),
+  actualHours: int("actualHours"),
+  tags: text("tags"), // JSON array
+  position: int("position").default(0), // For ordering in Kanban
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  completedAt: timestamp("completedAt"),
+}, (table) => ({
+  projectIdx: index("task_project_idx").on(table.projectId),
+  assigneeIdx: index("task_assignee_idx").on(table.assigneeId),
+  parentIdx: index("task_parent_idx").on(table.parentTaskId),
+  statusIdx: index("task_status_idx").on(table.status),
+}));
+
+export type Task = typeof tasks.$inferSelect;
+export type InsertTask = typeof tasks.$inferInsert;
+
+/**
+ * Task dependencies
+ */
+export const taskDependencies = mysqlTable("task_dependencies", {
+  id: int("id").autoincrement().primaryKey(),
+  taskId: int("taskId").notNull(),
+  dependsOnTaskId: int("dependsOnTaskId").notNull(),
+  type: mysqlEnum("type", ["blocks", "blocked_by", "relates_to"]).default("blocks").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  taskIdx: index("task_dep_task_idx").on(table.taskId),
+  dependsIdx: index("task_dep_depends_idx").on(table.dependsOnTaskId),
+}));
+
+export type TaskDependency = typeof taskDependencies.$inferSelect;
+export type InsertTaskDependency = typeof taskDependencies.$inferInsert;
+
+/**
+ * Task comments
+ */
+export const taskComments = mysqlTable("task_comments", {
+  id: int("id").autoincrement().primaryKey(),
+  taskId: int("taskId").notNull(),
+  userId: int("userId").notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  taskIdx: index("task_comment_task_idx").on(table.taskId),
+}));
+
+export type TaskComment = typeof taskComments.$inferSelect;
+export type InsertTaskComment = typeof taskComments.$inferInsert;
+
+/**
+ * Sprints table
+ */
+export const sprints = mysqlTable("sprints", {
+  id: int("id").autoincrement().primaryKey(),
+  projectId: int("projectId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  goal: text("goal"),
+  startDate: timestamp("startDate").notNull(),
+  endDate: timestamp("endDate").notNull(),
+  status: mysqlEnum("status", ["planned", "active", "completed"]).default("planned").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  projectIdx: index("sprint_project_idx").on(table.projectId),
+}));
+
+export type Sprint = typeof sprints.$inferSelect;
+export type InsertSprint = typeof sprints.$inferInsert;
+
+/**
+ * Task attachments (links to files table)
+ */
+export const taskAttachments = mysqlTable("task_attachments", {
+  id: int("id").autoincrement().primaryKey(),
+  taskId: int("taskId").notNull(),
+  fileId: int("fileId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  taskIdx: index("task_attachment_task_idx").on(table.taskId),
+  fileIdx: index("task_attachment_file_idx").on(table.fileId),
+}));
+
+export type TaskAttachment = typeof taskAttachments.$inferSelect;
+export type InsertTaskAttachment = typeof taskAttachments.$inferInsert;
+
+
+/**
+ * Note templates
+ */
+export const noteTemplates = mysqlTable("note_templates", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  contentMarkdown: text("contentMarkdown").notNull(),
+  category: varchar("category", { length: 100 }),
+  icon: varchar("icon", { length: 50 }),
+  isPublic: boolean("isPublic").default(true).notNull(),
+  createdBy: int("createdBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type NoteTemplate = typeof noteTemplates.$inferSelect;
+export type InsertNoteTemplate = typeof noteTemplates.$inferInsert;
+

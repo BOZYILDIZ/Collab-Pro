@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { APP_LOGO, APP_TITLE, getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users, MessageSquare, FileText, Calendar, Clock, Bell } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, Users, MessageSquare, FileText, Calendar, Clock, Bell, FolderKanban, Search } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -29,6 +29,8 @@ import { Button } from "./ui/button";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Tableau de bord", path: "/" },
+  { icon: Search, label: "Recherche", path: "/search" },
+  { icon: FolderKanban, label: "Projets", path: "/projects" },
   { icon: MessageSquare, label: "Chat", path: "/chat" },
   { icon: FileText, label: "Notes", path: "/notes" },
   { icon: Calendar, label: "Agenda", path: "/calendar" },

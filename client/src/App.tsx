@@ -7,11 +7,15 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Chat from "./pages/Chat";
-import Notes from "./pages/Notes";
+import NotesV2 from "./pages/NotesV2";
 import Calendar from "./pages/Calendar";
 import Appointments from "./pages/Appointments";
 import Notifications from "./pages/Notifications";
 import Team from "./pages/Team";
+import Projects from "./pages/Projects";
+import ProjectBoard from "./pages/ProjectBoard";
+import TaskDetail from "./pages/TaskDetail";
+import Search from "./pages/Search";
 
 function Router() {
   return (
@@ -19,11 +23,15 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/chat" component={Chat} />
-      <Route path="/notes" component={Notes} />
+      <Route path="/notes" component={NotesV2} />
       <Route path="/calendar" component={Calendar} />
       <Route path="/appointments" component={Appointments} />
       <Route path="/notifications" component={Notifications} />
       <Route path="/team" component={Team} />
+      <Route path="/projects" component={Projects} />
+      <Route path="/projects/:id" component={ProjectBoard} />
+      <Route path="/tasks/:id" component={TaskDetail} />
+      <Route path="/search" component={Search} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
