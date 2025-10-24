@@ -16,6 +16,7 @@ import Projects from "./pages/Projects";
 import ProjectBoard from "./pages/ProjectBoard";
 import TaskDetail from "./pages/TaskDetail";
 import Search from "./pages/Search";
+import Invitations from "./pages/Invitations";
 
 function Router() {
   return (
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/projects/:id" component={ProjectBoard} />
       <Route path="/tasks/:id" component={TaskDetail} />
       <Route path="/search" component={Search} />
+      <Route path="/invitations" component={Invitations} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

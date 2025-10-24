@@ -524,3 +524,27 @@ export const noteTemplates = mysqlTable("note_templates", {
 export type NoteTemplate = typeof noteTemplates.$inferSelect;
 export type InsertNoteTemplate = typeof noteTemplates.$inferInsert;
 
+
+
+/**
+ * Invitations table for inviting users to join the organization
+ */
+export const invitations = mysqlTable("invitations", {
+  id: int("id").autoincrement().primaryKey(),
+  orgId: int("orgId").notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  role: mysqlEnum("role", ["owner", "admin", "member", "guest"]).default("member").notNull(),
+  invitedBy: int("invitedBy").notNull(),
+  status: mysqlEnum("status", ["pending", "accepted", "expired", "revoked"]).default("pending").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  acceptedAt: timestamp("acceptedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  tokenIdx: index("token_idx").on(table.token),
+  emailIdx: index("email_idx").on(table.email),
+}));
+
+export type Invitation = typeof invitations.$inferSelect;
+export type InsertInvitation = typeof invitations.$inferInsert;
+

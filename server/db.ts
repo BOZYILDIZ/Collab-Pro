@@ -11,7 +11,8 @@ import {
   projects, InsertProject, projectMembers, InsertProjectMember,
   tasks, InsertTask, taskComments, InsertTaskComment, taskDependencies, InsertTaskDependency,
   sprints, InsertSprint, taskAttachments, InsertTaskAttachment,
-  noteTemplates, InsertNoteTemplate
+  noteTemplates, InsertNoteTemplate,
+  invitations, InsertInvitation
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -713,5 +714,75 @@ export async function getNoteTemplate(id: number) {
   if (!db) return undefined;
   const result = await db.select().from(noteTemplates).where(eq(noteTemplates.id, id)).limit(1);
   return result[0];
+}
+
+
+
+
+// ============ INVITATIONS ============
+
+export async function createInvitation(invitation: InsertInvitation) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const [result] = await db.insert(invitations).values(invitation);
+  return result.insertId;
+}
+
+export async function getInvitationByToken(token: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const [invitation] = await db
+    .select()
+    .from(invitations)
+    .where(eq(invitations.token, token))
+    .limit(1);
+  
+  return invitation || null;
+}
+
+export async function getInvitationsByOrg(orgId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .select({
+      invitation: invitations,
+      inviter: users,
+    })
+    .from(invitations)
+    .leftJoin(users, eq(invitations.invitedBy, users.id))
+    .where(eq(invitations.orgId, orgId))
+    .orderBy(desc(invitations.createdAt));
+}
+
+export async function updateInvitationStatus(
+  id: number,
+  status: "pending" | "accepted" | "expired" | "revoked",
+  acceptedAt?: Date
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const updateData: any = { status };
+  if (acceptedAt) {
+    updateData.acceptedAt = acceptedAt;
+  }
+  
+  await db
+    .update(invitations)
+    .set(updateData)
+    .where(eq(invitations.id, id));
+}
+
+export async function revokeInvitation(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db
+    .update(invitations)
+    .set({ status: "revoked" })
+    .where(eq(invitations.id, id));
 }
 

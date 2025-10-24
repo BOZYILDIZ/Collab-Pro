@@ -879,6 +879,84 @@ export const appRouter = router({
         return results;
       }),
   }),
+
+  // Invitations
+  invitations: router({
+    create: protectedProcedure
+      .input(z.object({
+        orgId: z.number(),
+        email: z.string().email(),
+        role: z.enum(["member", "admin", "guest"]).default("member"),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        // Generate unique token
+        const token = require('crypto').randomBytes(32).toString('hex');
+        
+        // Set expiration to 7 days from now
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
+        
+        const invitationId = await db.createInvitation({
+          orgId: input.orgId,
+          email: input.email,
+          token,
+          role: input.role,
+          invitedBy: ctx.user.id,
+          status: "pending",
+          expiresAt,
+        });
+        
+        return {
+          id: invitationId,
+          token,
+          inviteUrl: `${process.env.APP_URL || 'http://localhost:3000'}/register?token=${token}`,
+        };
+      }),
+
+    list: protectedProcedure
+      .input(z.object({
+        orgId: z.number(),
+      }))
+      .query(async ({ input }) => {
+        return await db.getInvitationsByOrg(input.orgId);
+      }),
+
+    verify: publicProcedure
+      .input(z.object({
+        token: z.string(),
+      }))
+      .query(async ({ input }) => {
+        const invitation = await db.getInvitationByToken(input.token);
+        
+        if (!invitation) {
+          throw new Error("Invitation invalide");
+        }
+        
+        if (invitation.status !== "pending") {
+          throw new Error("Cette invitation a déjà été utilisée ou révoquée");
+        }
+        
+        if (new Date() > invitation.expiresAt) {
+          await db.updateInvitationStatus(invitation.id, "expired");
+          throw new Error("Cette invitation a expiré");
+        }
+        
+        return {
+          email: invitation.email,
+          orgId: invitation.orgId,
+          role: invitation.role,
+        };
+      }),
+
+    revoke: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.revokeInvitation(input.id);
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,30 @@ import { toast } from "sonner";
 export default function Login() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [invitationToken, setInvitationToken] = useState<string | null>(null);
+  
+  // Check for invitation token in URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (token) {
+      setInvitationToken(token);
+      setActiveTab("register");
+    }
+  }, []);
+  
+  // Verify invitation token
+  const { data: invitationData, isLoading: verifyingInvitation } = trpc.invitations.verify.useQuery(
+    { token: invitationToken || "" },
+    { enabled: !!invitationToken }
+  );
+  
+  // Pre-fill email if invitation exists
+  useEffect(() => {
+    if (invitationData?.email) {
+      setRegisterEmail(invitationData.email);
+    }
+  }, [invitationData]);
 
   // Login form
   const [loginEmail, setLoginEmail] = useState("");
