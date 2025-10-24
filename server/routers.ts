@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { randomBytes } from "crypto";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -890,7 +891,7 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         // Generate unique token
-        const token = require('crypto').randomBytes(32).toString('hex');
+        const token = randomBytes(32).toString('hex');
         
         // Set expiration to 7 days from now
         const expiresAt = new Date();
