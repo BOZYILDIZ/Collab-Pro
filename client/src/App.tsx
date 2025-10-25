@@ -18,6 +18,7 @@ import TaskDetail from "./pages/TaskDetail";
 import Search from "./pages/Search";
 import Invitations from "./pages/Invitations";
 import Teams from "./pages/Teams";
+import Admin from "./pages/Admin";
 
 function Router() {
   return (
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/search" component={Search} />
       <Route path="/invitations" component={Invitations} />
       <Route path="/teams" component={Teams} />
+      <Route path="/admin" component={Admin} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

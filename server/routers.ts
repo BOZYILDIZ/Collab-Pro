@@ -1162,6 +1162,19 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  // Admin utilities
+  admin: router({
+    seedData: protectedProcedure
+      .input(z.object({
+        orgId: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { seedDataForUser } = await import('./seed-data');
+        const result = await seedDataForUser(ctx.user.id, input.orgId);
+        return result;
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
