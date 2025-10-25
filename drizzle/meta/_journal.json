@@ -43,6 +43,13 @@
       "when": 1761295838005,
       "tag": "0005_eminent_impossible_man",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1761378636689,
+      "tag": "0006_careless_wild_child",
+      "breakpoints": true
     }
   ]
 }

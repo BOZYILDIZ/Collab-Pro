@@ -37,7 +37,8 @@ const menuItems = [
   { icon: Clock, label: "Rendez-vous", path: "/appointments" },
   { icon: Bell, label: "Notifications", path: "/notifications" },
   { icon: Mail, label: "Invitations", path: "/invitations" },
-  { icon: Users, label: "Équipe", path: "/team" },
+  { icon: Users, label: "Équipes", path: "/teams" },
+  { icon: Users, label: "Membres", path: "/team" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";

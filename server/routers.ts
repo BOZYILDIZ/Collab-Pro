@@ -958,6 +958,143 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
+
+  // Teams
+  teams: router({
+    create: protectedProcedure
+      .input(z.object({
+        orgId: z.number(),
+        name: z.string(),
+        description: z.string().optional(),
+        color: z.string().optional(),
+        icon: z.string().optional(),
+        createChat: z.boolean().default(true),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        let chatId: number | null = null;
+        
+        // Create team chat if requested
+        if (input.createChat) {
+          chatId = await db.createChat({
+            orgId: input.orgId,
+            isGroup: true,
+            name: `Équipe ${input.name}`,
+            createdBy: ctx.user.id,
+          });
+        }
+        
+        const teamId = await db.createTeam({
+          orgId: input.orgId,
+          name: input.name,
+          description: input.description,
+          color: input.color || "#3B82F6",
+          icon: input.icon,
+          chatId,
+          createdBy: ctx.user.id,
+        });
+        
+        // Add creator as team leader
+        await db.addTeamMember(teamId, ctx.user.id, "leader");
+        
+        // Add creator to team chat
+        if (chatId) {
+          await db.addChatMember({ chatId, userId: ctx.user.id });
+        }
+        
+        return { id: teamId, chatId };
+      }),
+
+    list: protectedProcedure
+      .input(z.object({
+        orgId: z.number(),
+      }))
+      .query(async ({ input }) => {
+        return await db.getTeamsByOrg(input.orgId);
+      }),
+
+    get: protectedProcedure
+      .input(z.object({
+        teamId: z.number(),
+      }))
+      .query(async ({ input }) => {
+        return await db.getTeamWithMembers(input.teamId);
+      }),
+
+    update: protectedProcedure
+      .input(z.object({
+        teamId: z.number(),
+        name: z.string().optional(),
+        description: z.string().optional(),
+        color: z.string().optional(),
+        icon: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { teamId, ...data } = input;
+        await db.updateTeam(teamId, data);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({
+        teamId: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.deleteTeam(input.teamId);
+        return { success: true };
+      }),
+
+    addMember: protectedProcedure
+      .input(z.object({
+        teamId: z.number(),
+        userId: z.number(),
+        role: z.enum(["leader", "member"]).default("member"),
+      }))
+      .mutation(async ({ input }) => {
+        await db.addTeamMember(input.teamId, input.userId, input.role);
+        
+        // Add member to team chat if exists
+        const team = await db.getTeamById(input.teamId);
+        if (team?.chatId) {
+          await db.addChatMember({ chatId: team.chatId, userId: input.userId });
+        }
+        
+        return { success: true };
+      }),
+
+    removeMember: protectedProcedure
+      .input(z.object({
+        teamId: z.number(),
+        userId: z.number(),
+      }))
+      .mutation(async ({ input }) => {
+        await db.removeTeamMember(input.teamId, input.userId);
+        return { success: true };
+      }),
+
+    getMembers: protectedProcedure
+      .input(z.object({
+        teamId: z.number(),
+      }))
+      .query(async ({ input }) => {
+        return await db.getTeamMembers(input.teamId);
+      }),
+
+    getUserTeams: protectedProcedure
+      .query(async ({ ctx }) => {
+        return await db.getUserTeams(ctx.user.id);
+      }),
+
+    updateMemberRole: protectedProcedure
+      .input(z.object({
+        teamId: z.number(),
+        userId: z.number(),
+        role: z.enum(["leader", "member"]),
+      }))
+      .mutation(async ({ input }) => {
+        await db.updateTeamMemberRole(input.teamId, input.userId, input.role);
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

@@ -12,7 +12,8 @@ import {
   tasks, InsertTask, taskComments, InsertTaskComment, taskDependencies, InsertTaskDependency,
   sprints, InsertSprint, taskAttachments, InsertTaskAttachment,
   noteTemplates, InsertNoteTemplate,
-  invitations, InsertInvitation
+  invitations, InsertInvitation,
+  teams, InsertTeam, teamMembers, InsertTeamMember
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -784,5 +785,141 @@ export async function revokeInvitation(id: number) {
     .update(invitations)
     .set({ status: "revoked" })
     .where(eq(invitations.id, id));
+}
+
+
+
+// ============ TEAMS ============
+
+export async function createTeam(team: InsertTeam) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const [result] = await db.insert(teams).values(team);
+  return result.insertId;
+}
+
+export async function getTeamsByOrg(orgId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .select()
+    .from(teams)
+    .where(eq(teams.orgId, orgId))
+    .orderBy(teams.name);
+}
+
+export async function getTeamById(teamId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const [team] = await db
+    .select()
+    .from(teams)
+    .where(eq(teams.id, teamId))
+    .limit(1);
+  
+  return team || null;
+}
+
+export async function updateTeam(teamId: number, data: Partial<InsertTeam>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db
+    .update(teams)
+    .set(data)
+    .where(eq(teams.id, teamId));
+}
+
+export async function deleteTeam(teamId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Delete team members first
+  await db.delete(teamMembers).where(eq(teamMembers.teamId, teamId));
+  
+  // Delete team
+  await db.delete(teams).where(eq(teams.id, teamId));
+}
+
+export async function addTeamMember(teamId: number, userId: number, role: "leader" | "member" = "member") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.insert(teamMembers).values({
+    teamId,
+    userId,
+    role,
+  });
+}
+
+export async function removeTeamMember(teamId: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db
+    .delete(teamMembers)
+    .where(and(
+      eq(teamMembers.teamId, teamId),
+      eq(teamMembers.userId, userId)
+    ));
+}
+
+export async function getTeamMembers(teamId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .select({
+      member: teamMembers,
+      user: users,
+    })
+    .from(teamMembers)
+    .leftJoin(users, eq(teamMembers.userId, users.id))
+    .where(eq(teamMembers.teamId, teamId));
+}
+
+export async function getUserTeams(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .select({
+      team: teams,
+      membership: teamMembers,
+    })
+    .from(teamMembers)
+    .leftJoin(teams, eq(teamMembers.teamId, teams.id))
+    .where(eq(teamMembers.userId, userId));
+}
+
+export async function updateTeamMemberRole(teamId: number, userId: number, role: "leader" | "member") {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db
+    .update(teamMembers)
+    .set({ role })
+    .where(and(
+      eq(teamMembers.teamId, teamId),
+      eq(teamMembers.userId, userId)
+    ));
+}
+
+export async function getTeamWithMembers(teamId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const team = await getTeamById(teamId);
+  if (!team) return null;
+  
+  const members = await getTeamMembers(teamId);
+  
+  return {
+    ...team,
+    members,
+  };
 }
 

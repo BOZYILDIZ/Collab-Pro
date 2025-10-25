@@ -548,3 +548,43 @@ export const invitations = mysqlTable("invitations", {
 export type Invitation = typeof invitations.$inferSelect;
 export type InsertInvitation = typeof invitations.$inferInsert;
 
+
+
+/**
+ * Teams table - organizational units within an organization
+ */
+export const teams = mysqlTable("teams", {
+  id: int("id").autoincrement().primaryKey(),
+  orgId: int("orgId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  color: varchar("color", { length: 7 }).default("#3B82F6"), // Hex color
+  icon: varchar("icon", { length: 50 }),
+  chatId: int("chatId"), // Associated team chat
+  createdBy: int("createdBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  orgIdx: index("org_idx").on(table.orgId),
+}));
+
+export type Team = typeof teams.$inferSelect;
+export type InsertTeam = typeof teams.$inferInsert;
+
+/**
+ * Team members - many-to-many relationship between users and teams
+ */
+export const teamMembers = mysqlTable("team_members", {
+  id: int("id").autoincrement().primaryKey(),
+  teamId: int("teamId").notNull(),
+  userId: int("userId").notNull(),
+  role: mysqlEnum("role", ["leader", "member"]).default("member").notNull(),
+  joinedAt: timestamp("joinedAt").defaultNow().notNull(),
+}, (table) => ({
+  teamUserIdx: index("team_user_idx").on(table.teamId, table.userId),
+  userTeamIdx: index("user_team_idx").on(table.userId, table.teamId),
+}));
+
+export type TeamMember = typeof teamMembers.$inferSelect;
+export type InsertTeamMember = typeof teamMembers.$inferInsert;
+
