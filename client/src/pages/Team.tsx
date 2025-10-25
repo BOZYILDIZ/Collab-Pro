@@ -75,7 +75,13 @@ export default function Team() {
           />
         </div>
 
-        {filteredMembers && filteredMembers.length > 0 ? (
+        {isLoading ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <p className="text-muted-foreground">Chargement...</p>
+            </CardContent>
+          </Card>
+        ) : filteredMembers && filteredMembers.length > 0 ? (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredMembers.map(({ membership, user }) => (
               <Card key={user.id}>
