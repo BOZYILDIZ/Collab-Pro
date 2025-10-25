@@ -60,9 +60,10 @@ export const appRouter = router({
 
   users: router({
     list: protectedProcedure
-      .query(async ({ ctx }) => {
+      .input(z.object({ orgId: z.number() }))
+      .query(async ({ input }) => {
         // Get all users from the organization
-        const orgMembers = await db.getOrgMembers(1); // TODO: Get from org context
+        const orgMembers = await db.getOrgMembers(input.orgId);
         return orgMembers;
       }),
     
@@ -86,6 +87,29 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         return db.getUserById(input.id);
+      }),
+    
+    updateProfile: protectedProcedure
+      .input(z.object({
+        displayName: z.string().optional(),
+        email: z.string().email().optional(),
+        jobTitle: z.string().optional(),
+        profileColor: z.string().optional(),
+        avatarUrl: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.updateUserProfile(ctx.user.id, input);
+        return { success: true };
+      }),
+    
+    updatePassword: protectedProcedure
+      .input(z.object({
+        currentPassword: z.string(),
+        newPassword: z.string().min(8),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await db.updateUserPassword(ctx.user.id, input.currentPassword, input.newPassword);
+        return { success: true };
       }),
   }),
 
@@ -377,6 +401,13 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return db.getNoteTemplate(input.id);
       }),
+    
+    delete: protectedProcedure
+      .input(z.object({ noteId: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteNote(input.noteId);
+        return { success: true };
+      }),
   }),
 
   calendars: router({
@@ -476,11 +507,8 @@ export const appRouter = router({
         orgId: z.number(),
         title: z.string(),
         description: z.string().optional(),
-        inviteeIds: z.array(z.number()),
-        proposedSlots: z.array(z.object({
-          start: z.date(),
-          end: z.date(),
-        })),
+        targetUserId: z.number(),
+        proposedSlotsJson: z.string(),
       }))
       .mutation(async ({ ctx, input }) => {
         const appointmentId = await db.createAppointmentRequest({
@@ -488,16 +516,14 @@ export const appRouter = router({
           requesterId: ctx.user.id,
           title: input.title,
           description: input.description,
-          proposedSlotsJson: JSON.stringify(input.proposedSlots),
+          proposedSlotsJson: input.proposedSlotsJson,
         });
         
         if (appointmentId) {
-          for (const inviteeId of input.inviteeIds) {
-            await db.addAppointmentInvitee({
-              appointmentId,
-              userId: inviteeId,
-            });
-          }
+          await db.addAppointmentInvitee({
+            appointmentId,
+            userId: input.targetUserId,
+          });
         }
         
         return { appointmentId };
@@ -508,8 +534,43 @@ export const appRouter = router({
         id: z.number(),
         decidedSlot: z.date(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
+        // Mettre à jour le statut du rendez-vous
         await db.updateAppointmentStatus(input.id, "confirmed", input.decidedSlot);
+        
+        // Récupérer les détails du rendez-vous
+        const appointment = await db.getAppointmentById(input.id);
+        if (!appointment) throw new Error("Appointment not found");
+        
+        // Récupérer le calendrier par défaut de l'utilisateur
+        const calendars = await db.getUserCalendars(ctx.user.id, appointment.orgId);
+        let calendarId = calendars.find(c => c.name === "Mon Calendrier")?.id;
+        
+        // Si pas de calendrier, en créer un
+        if (!calendarId) {
+          const newCalendarId = await db.createCalendar({
+            orgId: appointment.orgId,
+            ownerId: ctx.user.id,
+            name: "Mon Calendrier",
+            visibility: "private",
+            color: "#3B82F6",
+          });
+          calendarId = newCalendarId || undefined;
+        }
+        
+        // Créer l'événement dans l'agenda
+        if (calendarId) {
+          const endTime = new Date(input.decidedSlot.getTime() + 60 * 60 * 1000); // 1 heure par défaut
+          await db.createEvent({
+            calendarId,
+            title: appointment.title,
+            description: appointment.description || undefined,
+            startsAt: input.decidedSlot,
+            endsAt: endTime,
+            createdBy: ctx.user.id,
+          });
+        }
+        
         return { success: true };
       }),
     

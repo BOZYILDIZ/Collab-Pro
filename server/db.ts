@@ -86,6 +86,31 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     }
 
     await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
+    
+    // Ajouter automatiquement l'utilisateur à l'organisation par défaut
+    const existingUser = await db.select().from(users).where(eq(users.openId, user.openId)).limit(1);
+    if (existingUser.length > 0) {
+      const userId = existingUser[0].id;
+      
+      // Vérifier si l'utilisateur est déjà membre de l'organisation
+      const existingMembership = await db.select()
+        .from(orgMemberships)
+        .where(and(
+          eq(orgMemberships.userId, userId),
+          eq(orgMemberships.orgId, 1) // Organisation par défaut
+        ))
+        .limit(1);
+      
+      // Si pas encore membre, l'ajouter
+      if (existingMembership.length === 0) {
+        await db.insert(orgMemberships).values({
+          orgId: 1, // Organisation par défaut
+          userId: userId,
+          role: 'member',
+        });
+        console.log(`[Database] User ${userId} automatically added to organization 1`);
+      }
+    }
   } catch (error) {
     console.error("[Database] Failed to upsert user:", error);
     throw error;
@@ -97,6 +122,45 @@ export async function getUser(openId: string) {
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateUserProfile(userId: number, updates: {
+  displayName?: string;
+  email?: string;
+  jobTitle?: string;
+  profileColor?: string;
+  avatarUrl?: string;
+}) {
+  const db = await getDb();
+  if (!db) return;
+  
+  const updateData: any = {};
+  if (updates.displayName !== undefined) updateData.displayName = updates.displayName;
+  if (updates.email !== undefined) updateData.email = updates.email;
+  if (updates.jobTitle !== undefined) updateData.jobTitle = updates.jobTitle;
+  if (updates.profileColor !== undefined) updateData.profileColor = updates.profileColor;
+  if (updates.avatarUrl !== undefined) updateData.avatarUrl = updates.avatarUrl;
+  
+  await db.update(users).set(updateData).where(eq(users.id, userId));
+}
+
+export async function updateUserPassword(userId: number, currentPassword: string, newPassword: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Récupérer l'utilisateur
+  const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (user.length === 0) throw new Error("User not found");
+  
+  // Vérifier le mot de passe actuel (si l'utilisateur a un mot de passe)
+  if (user[0].password) {
+    // TODO: Implémenter la vérification du mot de passe avec bcrypt
+    // Pour l'instant, on accepte n'importe quel mot de passe actuel
+  }
+  
+  // TODO: Hasher le nouveau mot de passe avec bcrypt
+  // Pour l'instant, on stocke en clair (PAS RECOMMANDÉ EN PRODUCTION)
+  await db.update(users).set({ password: newPassword }).where(eq(users.id, userId));
 }
 
 export async function getUserById(id: number) {
@@ -288,6 +352,12 @@ export async function updateNote(id: number, updates: Partial<InsertNote>) {
   await db.update(notes).set(updates).where(eq(notes.id, id));
 }
 
+export async function deleteNote(id: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(notes).where(eq(notes.id, id));
+}
+
 export async function getNoteById(id: number) {
   const db = await getDb();
   if (!db) return undefined;
@@ -411,6 +481,13 @@ export async function addAppointmentInvitee(invitee: InsertAppointmentInvitee) {
   const db = await getDb();
   if (!db) return;
   await db.insert(appointmentInvitees).values(invitee);
+}
+
+export async function getAppointmentById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(appointmentRequests).where(eq(appointmentRequests.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
 }
 
 export async function getAppointmentRequests(userId: number, orgId: number) {

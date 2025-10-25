@@ -17,6 +17,8 @@ export const users = mysqlTable("users", {
   locale: varchar("locale", { length: 10 }).default("fr"),
   status: mysqlEnum("status", ["online", "offline", "away", "busy"]).default("offline"),
   customStatus: varchar("customStatus", { length: 100 }),
+  profileColor: varchar("profileColor", { length: 7 }).default("#3B82F6"), // Couleur personnalisée (hex)
+  jobTitle: varchar("jobTitle", { length: 100 }), // Domaine/métier (ex: Comptable)
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),

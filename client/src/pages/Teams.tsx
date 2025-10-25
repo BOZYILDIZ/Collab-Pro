@@ -23,7 +23,7 @@ export default function Teams() {
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
 
   const { data: teams, refetch: refetchTeams } = trpc.teams.list.useQuery({ orgId: 1 });
-  const { data: allUsers } = trpc.users.list.useQuery();
+  const { data: allUsers } = trpc.users.list.useQuery({ orgId: 1 });
   const { data: selectedTeam, refetch: refetchSelectedTeam } = trpc.teams.get.useQuery(
     { teamId: selectedTeamId! },
     { enabled: !!selectedTeamId }
@@ -63,7 +63,7 @@ export default function Teams() {
     },
   });
 
-  const handleCreateTeam = () => {
+  const handleCreateTeam = async () => {
     if (!newTeamName.trim()) return;
 
     createTeamMutation.mutate({
@@ -72,6 +72,26 @@ export default function Teams() {
       description: newTeamDescription,
       color: newTeamColor,
       createChat,
+    }, {
+      onSuccess: (data) => {
+        // Ajouter les membres sélectionnés à l'équipe
+        if (data.id && selectedMembers.length > 0) {
+          selectedMembers.forEach((userId) => {
+            addMemberMutation.mutate({
+              teamId: data.id,
+              userId,
+              role: "member",
+            });
+          });
+        }
+        // Réinitialiser le formulaire
+        setNewTeamName("");
+        setNewTeamDescription("");
+        setNewTeamColor("#3B82F6");
+        setCreateChat(true);
+        setSelectedMembers([]);
+        setIsCreateDialogOpen(false);
+      },
     });
   };
 
@@ -172,6 +192,24 @@ export default function Teams() {
                       placeholder="#3B82F6"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <Label>Sélectionner les membres</Label>
+                  <ScrollArea className="h-48 border rounded-md p-2 mt-2">
+                    {allUsers?.map((u) => (
+                      <div key={u.user.id} className="flex items-center space-x-2 py-2">
+                        <Checkbox
+                          id={`create-user-${u.user.id}`}
+                          checked={selectedMembers.includes(u.user.id)}
+                          onCheckedChange={() => toggleMember(u.user.id)}
+                        />
+                        <Label htmlFor={`create-user-${u.user.id}`} className="cursor-pointer">
+                          {u.user.name} ({u.user.email})
+                        </Label>
+                      </div>
+                    ))}
+                  </ScrollArea>
                 </div>
 
                 <div className="flex items-center space-x-2">

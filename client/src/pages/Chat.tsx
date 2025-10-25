@@ -27,7 +27,7 @@ export default function Chat() {
   const { data: chats, isLoading: chatsLoading, refetch: refetchChats } = trpc.chats.list.useQuery();
   
   // Fetch all users for member selection
-  const { data: allUsers } = trpc.users.list.useQuery();
+  const { data: allUsers } = trpc.users.list.useQuery({ orgId: 1 });
   
   // Fetch messages for selected chat with auto-refresh every 3 seconds
   const { data: messages, refetch: refetchMessages } = trpc.chats.getMessages.useQuery(

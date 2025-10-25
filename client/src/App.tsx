@@ -16,9 +16,11 @@ import Projects from "./pages/Projects";
 import ProjectBoard from "./pages/ProjectBoard";
 import TaskDetail from "./pages/TaskDetail";
 import Search from "./pages/Search";
-import Invitations from "./pages/Invitations";
+
 import Teams from "./pages/Teams";
 import Admin from "./pages/Admin";
+import NoteDetail from "./pages/NoteDetail";
+import Profile from "./pages/Profile";
 
 function Router() {
   return (
@@ -27,6 +29,7 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/chat" component={Chat} />
       <Route path="/notes" component={NotesV2} />
+      <Route path="/notes/:id" component={NoteDetail} />
       <Route path="/calendar" component={Calendar} />
       <Route path="/appointments" component={Appointments} />
       <Route path="/notifications" component={Notifications} />
@@ -35,9 +38,10 @@ function Router() {
       <Route path="/projects/:id" component={ProjectBoard} />
       <Route path="/tasks/:id" component={TaskDetail} />
       <Route path="/search" component={Search} />
-      <Route path="/invitations" component={Invitations} />
+
       <Route path="/teams" component={Teams} />
       <Route path="/admin" component={Admin} />
+      <Route path="/profile" component={Profile} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
