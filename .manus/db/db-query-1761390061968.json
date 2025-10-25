@@ -1,0 +1,43 @@
+{
+  "query": "SELECT om.*, u.id as user_id, u.name, u.email, u.status\nFROM org_memberships om\nINNER JOIN users u ON om.userId = u.id\nWHERE om.orgId = 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user xtvsH7wmGwKF2Ts.e3e639334237 --database QticRVNvQtCuY66weCwsfA --execute SELECT om.*, u.id as user_id, u.name, u.email, u.status\nFROM org_memberships om\nINNER JOIN users u ON om.userId = u.id\nWHERE om.orgId = 1;",
+  "rows": [
+    {
+      "id": "1",
+      "orgId": "1",
+      "userId": "1",
+      "role": "owner",
+      "createdAt": "2025-10-23 13:08:14",
+      "user_id": "1",
+      "name": "Hasan Bicer",
+      "email": "hasan@netzinformatique.fr",
+      "status": "offline"
+    },
+    {
+      "id": "2",
+      "orgId": "1",
+      "userId": "30001",
+      "role": "member",
+      "createdAt": "2025-10-23 13:08:14",
+      "user_id": "30001",
+      "name": "Hasan Bicer",
+      "email": "hasan@bicer.fr",
+      "status": "offline"
+    },
+    {
+      "id": "3",
+      "orgId": "1",
+      "userId": "60001",
+      "role": "member",
+      "createdAt": "2025-10-23 13:08:14",
+      "user_id": "60001",
+      "name": "Test User",
+      "email": "test@example.com",
+      "status": "offline"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\torgId\tuserId\trole\tcreatedAt\tuser_id\tname\temail\tstatus\n1\t1\t1\towner\t2025-10-23 13:08:14\t1\tHasan Bicer\thasan@netzinformatique.fr\toffline\n2\t1\t30001\tmember\t2025-10-23 13:08:14\t30001\tHasan Bicer\thasan@bicer.fr\toffline\n3\t1\t60001\tmember\t2025-10-23 13:08:14\t60001\tTest User\ttest@example.com\toffline\n",
+  "stderr": "",
+  "execution_time_ms": 56
+}

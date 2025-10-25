@@ -10,9 +10,13 @@ import { useState } from "react";
 export default function Team() {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: members } = trpc.organizations.getMembers.useQuery({
+  const { data: members, isLoading, error } = trpc.organizations.getMembers.useQuery({
     orgId: 1, // TODO: Get from org context
   });
+
+  console.log('Members data:', members);
+  console.log('Is loading:', isLoading);
+  console.log('Error:', error);
 
   const getRoleBadge = (role: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline", label: string }> = {

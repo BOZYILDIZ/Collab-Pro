@@ -1,0 +1,9 @@
+{
+  "query": "INSERT IGNORE INTO org_memberships (orgId, userId, role, createdAt)\nSELECT 1, id, 'member', NOW()\nFROM users\nWHERE id NOT IN (SELECT userId FROM org_memberships WHERE orgId = 1);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user xtvsH7wmGwKF2Ts.e3e639334237 --database QticRVNvQtCuY66weCwsfA --execute INSERT IGNORE INTO org_memberships (orgId, userId, role, createdAt)\nSELECT 1, id, 'member', NOW()\nFROM users\nWHERE id NOT IN (SELECT userId FROM org_memberships WHERE orgId = 1);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 152
+}
