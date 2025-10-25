@@ -15,8 +15,7 @@ export default function Profile() {
   
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
-  const [jobTitle, setJobTitle] = useState("");
-  const [profileColor, setProfileColor] = useState("#3B82F6");
+
   const [avatarUrl, setAvatarUrl] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -50,8 +49,7 @@ export default function Profile() {
     if (user) {
       setDisplayName(user.displayName || user.name || "");
       setEmail(user.email || "");
-      setJobTitle((user as any).jobTitle || "");
-      setProfileColor((user as any).profileColor || "#3B82F6");
+
       setAvatarUrl(user.avatarUrl || "");
     }
   }, [user]);
@@ -60,8 +58,7 @@ export default function Profile() {
     updateProfileMutation.mutate({
       displayName,
       email,
-      jobTitle,
-      profileColor,
+
       avatarUrl,
     });
   };
@@ -126,7 +123,7 @@ export default function Profile() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-6">
-              <Avatar className="w-24 h-24" style={{ backgroundColor: profileColor }}>
+              <Avatar className="w-24 h-24">
                 <AvatarImage src={avatarUrl} alt={displayName} />
                 <AvatarFallback className="text-2xl text-white">{initials}</AvatarFallback>
               </Avatar>
@@ -183,35 +180,7 @@ export default function Profile() {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="jobTitle">Domaine / Métier</Label>
-                <Input
-                  id="jobTitle"
-                  value={jobTitle}
-                  onChange={(e) => setJobTitle(e.target.value)}
-                  placeholder="Ex: Comptable, Développeur, Designer..."
-                />
-              </div>
 
-              <div>
-                <Label htmlFor="profileColor">Couleur de profil</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="profileColor"
-                    type="color"
-                    value={profileColor}
-                    onChange={(e) => setProfileColor(e.target.value)}
-                    className="w-20 h-10 cursor-pointer"
-                  />
-                  <Input
-                    type="text"
-                    value={profileColor}
-                    onChange={(e) => setProfileColor(e.target.value)}
-                    placeholder="#3B82F6"
-                    className="flex-1"
-                  />
-                </div>
-              </div>
             </div>
 
             <div className="flex justify-end">

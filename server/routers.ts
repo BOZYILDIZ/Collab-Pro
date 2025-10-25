@@ -93,8 +93,6 @@ export const appRouter = router({
       .input(z.object({
         displayName: z.string().optional(),
         email: z.string().email().optional(),
-        jobTitle: z.string().optional(),
-        profileColor: z.string().optional(),
         avatarUrl: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {

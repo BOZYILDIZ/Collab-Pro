@@ -127,8 +127,6 @@ export async function getUser(openId: string) {
 export async function updateUserProfile(userId: number, updates: {
   displayName?: string;
   email?: string;
-  jobTitle?: string;
-  profileColor?: string;
   avatarUrl?: string;
 }) {
   const db = await getDb();
@@ -137,8 +135,6 @@ export async function updateUserProfile(userId: number, updates: {
   const updateData: any = {};
   if (updates.displayName !== undefined) updateData.displayName = updates.displayName;
   if (updates.email !== undefined) updateData.email = updates.email;
-  if (updates.jobTitle !== undefined) updateData.jobTitle = updates.jobTitle;
-  if (updates.profileColor !== undefined) updateData.profileColor = updates.profileColor;
   if (updates.avatarUrl !== undefined) updateData.avatarUrl = updates.avatarUrl;
   
   await db.update(users).set(updateData).where(eq(users.id, userId));

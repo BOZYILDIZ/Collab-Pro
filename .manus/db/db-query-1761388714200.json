@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE users \nADD COLUMN IF NOT EXISTS profileColor VARCHAR(7) DEFAULT '#3B82F6',\nADD COLUMN IF NOT EXISTS jobTitle VARCHAR(100);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user xtvsH7wmGwKF2Ts.e3e639334237 --database QticRVNvQtCuY66weCwsfA --execute ALTER TABLE users \nADD COLUMN IF NOT EXISTS profileColor VARCHAR(7) DEFAULT '#3B82F6',\nADD COLUMN IF NOT EXISTS jobTitle VARCHAR(100);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1371
+}
