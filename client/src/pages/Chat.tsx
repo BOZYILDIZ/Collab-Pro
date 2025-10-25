@@ -9,15 +9,25 @@ import { MessageSquare, Send, Plus, Search, Users } from "lucide-react";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Chat() {
   const { user } = useAuth();
   const [selectedChatId, setSelectedChatId] = useState<number | null>(null);
   const [messageText, setMessageText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newChatName, setNewChatName] = useState("");
+  const [isGroupChat, setIsGroupChat] = useState(false);
+  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
 
   // Fetch user's chats
-  const { data: chats, isLoading: chatsLoading } = trpc.chats.list.useQuery();
+  const { data: chats, isLoading: chatsLoading, refetch: refetchChats } = trpc.chats.list.useQuery();
+  
+  // Fetch all users for member selection
+  const { data: allUsers } = trpc.users.list.useQuery();
   
   // Fetch messages for selected chat
   const { data: messages, refetch: refetchMessages } = trpc.chats.getMessages.useQuery(
@@ -38,6 +48,17 @@ export default function Chat() {
     },
   });
 
+  const createChatMutation = trpc.chats.create.useMutation({
+    onSuccess: (data) => {
+      setIsCreateDialogOpen(false);
+      setNewChatName("");
+      setIsGroupChat(false);
+      setSelectedMembers([]);
+      refetchChats();
+      setSelectedChatId(data.id);
+    },
+  });
+
   const handleSendMessage = () => {
     if (!messageText.trim() || !selectedChatId) return;
     
@@ -47,6 +68,25 @@ export default function Chat() {
     });
   };
 
+  const handleCreateChat = () => {
+    if (isGroupChat && !newChatName.trim()) return;
+    if (selectedMembers.length === 0) return;
+
+    createChatMutation.mutate({
+      name: isGroupChat ? newChatName : undefined,
+      isGroup: isGroupChat,
+      memberIds: selectedMembers,
+    });
+  };
+
+  const toggleMember = (userId: number) => {
+    setSelectedMembers(prev =>
+      prev.includes(userId)
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
   const selectedChat = chats?.find(c => c.chat.id === selectedChatId);
 
   return (
@@ -54,10 +94,71 @@ export default function Chat() {
       <div className="h-[calc(100vh-8rem)]">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">Chat</h1>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Nouvelle conversation
-          </Button>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Nouvelle conversation
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Nouvelle conversation</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isGroup"
+                    checked={isGroupChat}
+                    onCheckedChange={(checked) => setIsGroupChat(checked as boolean)}
+                  />
+                  <Label htmlFor="isGroup">Conversation de groupe</Label>
+                </div>
+
+                {isGroupChat && (
+                  <div>
+                    <Label htmlFor="chatName">Nom du groupe</Label>
+                    <Input
+                      id="chatName"
+                      placeholder="Mon équipe..."
+                      value={newChatName}
+                      onChange={(e) => setNewChatName(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <Label>Sélectionner les membres</Label>
+                  <ScrollArea className="h-48 border rounded-md p-2 mt-2">
+                    {allUsers?.filter(u => u.id !== user?.id).map((u) => (
+                      <div key={u.id} className="flex items-center space-x-2 py-2">
+                        <Checkbox
+                          id={`user-${u.id}`}
+                          checked={selectedMembers.includes(u.id)}
+                          onCheckedChange={() => toggleMember(u.id)}
+                        />
+                        <Label htmlFor={`user-${u.id}`} className="cursor-pointer">
+                          {u.name} ({u.email})
+                        </Label>
+                      </div>
+                    ))}
+                  </ScrollArea>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                    Annuler
+                  </Button>
+                  <Button
+                    onClick={handleCreateChat}
+                    disabled={createChatMutation.isPending || selectedMembers.length === 0}
+                  >
+                    Créer
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="grid grid-cols-12 gap-4 h-[calc(100%-4rem)]">
