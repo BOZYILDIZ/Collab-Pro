@@ -294,17 +294,17 @@ export default function TaskDetail() {
                   <p className="text-sm text-muted-foreground">Aucun commentaire</p>
                 ) : (
                   <div className="space-y-4">
-                    {comments.map((comment) => (
-                      <div key={comment.id} className="space-y-1">
+                    {comments.map((item) => (
+                      <div key={item.comment.id} className="space-y-1">
                         <div className="flex items-center gap-2 text-sm">
-                          <span className="font-medium">{comment.authorName || "Utilisateur"}</span>
+                          <span className="font-medium">{item.user?.name || "Utilisateur"}</span>
                           <span className="text-muted-foreground">•</span>
                           <span className="text-muted-foreground">
-                            {comment.createdAt ? format(new Date(comment.createdAt), "dd MMM yyyy à HH:mm", { locale: fr }) : "N/A"}
+                            {item.comment.createdAt ? format(new Date(item.comment.createdAt), "dd MMM yyyy à HH:mm", { locale: fr }) : "N/A"}
                           </span>
                         </div>
-                        <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
-                        {comment !== comments[comments.length - 1] && <Separator className="mt-4" />}
+                        <p className="text-sm whitespace-pre-wrap">{item.comment.content}</p>
+                        {item !== comments[comments.length - 1] && <Separator className="mt-4" />}
                       </div>
                     ))}
                   </div>

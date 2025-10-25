@@ -21,6 +21,7 @@ export default function Notes() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedNoteId, setSelectedNoteId] = useState<number | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   
   // Create note form state
   const [newNoteTitle, setNewNoteTitle] = useState("");
@@ -80,6 +81,22 @@ export default function Notes() {
     updateNoteMutation.mutate({
       id: noteId,
       isPinned: !currentValue,
+    });
+  };
+
+  const handleNoteClick = (noteId: number) => {
+    setSelectedNoteId(noteId);
+    setIsViewDialogOpen(true);
+  };
+
+  const handleUpdateNote = () => {
+    if (!selectedNote || !selectedNoteId) return;
+
+    updateNoteMutation.mutate({
+      id: selectedNoteId,
+      title: selectedNote.title,
+      contentMarkdown: selectedNote.contentMarkdown || "",
+      isPublic: selectedNote.isPublic,
     });
   };
 
@@ -181,7 +198,7 @@ export default function Notes() {
                   <Card
                     key={note.id}
                     className="hover:shadow-lg transition-shadow cursor-pointer relative"
-                    onClick={() => setSelectedNoteId(note.id)}
+                    onClick={() => handleNoteClick(note.id)}
                   >
                     <CardHeader>
                       <div className="flex items-start justify-between gap-2">
@@ -254,6 +271,77 @@ export default function Notes() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Dialog pour afficher/éditer une note */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Note</DialogTitle>
+            </DialogHeader>
+            {selectedNote ? (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="view-title">Titre</Label>
+                  <Input
+                    id="view-title"
+                    value={selectedNote.title}
+                    onChange={(e) => {
+                      // Update in place for editing
+                      const updated = { ...selectedNote, title: e.target.value };
+                      utils.notes.getById.setData({ id: selectedNoteId! }, updated);
+                    }}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="view-content">Contenu (Markdown)</Label>
+                  <Textarea
+                    id="view-content"
+                    rows={15}
+                    value={selectedNote.contentMarkdown || ""}
+                    onChange={(e) => {
+                      // Update in place for editing
+                      const updated = { ...selectedNote, contentMarkdown: e.target.value };
+                      utils.notes.getById.setData({ id: selectedNoteId! }, updated);
+                    }}
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="view-public"
+                    checked={selectedNote.isPublic}
+                    onCheckedChange={(checked) => {
+                      // Update in place for editing
+                      const updated = { ...selectedNote, isPublic: checked };
+                      utils.notes.getById.setData({ id: selectedNoteId! }, updated);
+                    }}
+                  />
+                  <Label htmlFor="view-public">Note publique (visible par toute l'équipe)</Label>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div className="text-xs text-muted-foreground">
+                    Dernière modification : {formatDistanceToNow(new Date(selectedNote.updatedAt), {
+                      addSuffix: true,
+                      locale: fr,
+                    })}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+                      Fermer
+                    </Button>
+                    <Button
+                      onClick={handleUpdateNote}
+                      disabled={updateNoteMutation.isPending}
+                    >
+                      Enregistrer
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">Chargement...</p>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

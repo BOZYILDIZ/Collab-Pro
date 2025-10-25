@@ -217,21 +217,28 @@ export async function getChatMessages(chatId: number, limit = 50, beforeId?: num
   const db = await getDb();
   if (!db) return [];
   
-  let query = db.select({
+  const conditions = [
+    eq(messages.chatId, chatId),
+    eq(messages.isDeleted, false)
+  ];
+  
+  if (beforeId) {
+    conditions.push(sql`${messages.id} < ${beforeId}`);
+  }
+  
+  // Get messages in descending order first (to get the latest N messages)
+  const results = await db.select({
     message: messages,
     sender: users
   })
   .from(messages)
   .innerJoin(users, eq(messages.senderId, users.id))
-  .where(and(
-    eq(messages.chatId, chatId),
-    eq(messages.isDeleted, false),
-    beforeId ? sql`${messages.id} < ${beforeId}` : undefined
-  ))
+  .where(and(...conditions))
   .orderBy(desc(messages.createdAt))
   .limit(limit);
   
-  return query;
+  // Reverse to show oldest first (chronological order)
+  return results.reverse();
 }
 
 export async function updateLastRead(chatId: number, userId: number) {

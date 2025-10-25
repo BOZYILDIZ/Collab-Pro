@@ -29,10 +29,13 @@ export default function Chat() {
   // Fetch all users for member selection
   const { data: allUsers } = trpc.users.list.useQuery();
   
-  // Fetch messages for selected chat
+  // Fetch messages for selected chat with auto-refresh every 3 seconds
   const { data: messages, refetch: refetchMessages } = trpc.chats.getMessages.useQuery(
     { chatId: selectedChatId! },
-    { enabled: !!selectedChatId }
+    { 
+      enabled: !!selectedChatId,
+      refetchInterval: 3000, // Refresh every 3 seconds
+    }
   );
 
   // Fetch chat members
@@ -55,7 +58,9 @@ export default function Chat() {
       setIsGroupChat(false);
       setSelectedMembers([]);
       refetchChats();
-      setSelectedChatId(data.id);
+      if (data.chatId) {
+        setSelectedChatId(data.chatId);
+      }
     },
   });
 
@@ -73,6 +78,7 @@ export default function Chat() {
     if (selectedMembers.length === 0) return;
 
     createChatMutation.mutate({
+      orgId: 1, // TODO: Get from org context
       name: isGroupChat ? newChatName : undefined,
       isGroup: isGroupChat,
       memberIds: selectedMembers,
@@ -130,15 +136,15 @@ export default function Chat() {
                 <div>
                   <Label>Sélectionner les membres</Label>
                   <ScrollArea className="h-48 border rounded-md p-2 mt-2">
-                    {allUsers?.filter(u => u.id !== user?.id).map((u) => (
-                      <div key={u.id} className="flex items-center space-x-2 py-2">
+                    {allUsers?.filter(u => u.user.id !== user?.id).map((u) => (
+                      <div key={u.user.id} className="flex items-center space-x-2 py-2">
                         <Checkbox
-                          id={`user-${u.id}`}
-                          checked={selectedMembers.includes(u.id)}
-                          onCheckedChange={() => toggleMember(u.id)}
+                          id={`user-${u.user.id}`}
+                          checked={selectedMembers.includes(u.user.id)}
+                          onCheckedChange={() => toggleMember(u.user.id)}
                         />
-                        <Label htmlFor={`user-${u.id}`} className="cursor-pointer">
-                          {u.name} ({u.email})
+                        <Label htmlFor={`user-${u.user.id}`} className="cursor-pointer">
+                          {u.user.name} ({u.user.email})
                         </Label>
                       </div>
                     ))}

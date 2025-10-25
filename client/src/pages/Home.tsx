@@ -7,37 +7,42 @@ import { Link } from "wouter";
 
 export default function Home() {
   const { user, loading } = useAuth({ redirectOnUnauthenticated: true });
+  
+  // Fetch dashboard stats
+  const { data: statsData, isLoading: statsLoading } = trpc.dashboard.stats.useQuery(
+    { orgId: 1 }, // TODO: Get from org context
+    { enabled: !!user }
+  );
 
   if (loading || !user) {
     return null; // Will redirect to /login
   }
   
-  // Fetch some stats (you can implement these queries later)
   const stats = [
     { 
       title: "Messages non lus", 
-      value: "12", 
+      value: statsLoading ? "..." : String(statsData?.unreadMessages || 0), 
       icon: MessageSquare, 
       color: "text-blue-500",
       href: "/chat"
     },
     { 
       title: "Notes actives", 
-      value: "24", 
+      value: statsLoading ? "..." : String(statsData?.activeNotes || 0), 
       icon: FileText, 
       color: "text-green-500",
       href: "/notes"
     },
     { 
       title: "Événements à venir", 
-      value: "8", 
+      value: statsLoading ? "..." : String(statsData?.upcomingEvents || 0), 
       icon: Calendar, 
       color: "text-purple-500",
       href: "/calendar"
     },
     { 
       title: "Rendez-vous en attente", 
-      value: "3", 
+      value: statsLoading ? "..." : String(statsData?.pendingAppointments || 0), 
       icon: Clock, 
       color: "text-orange-500",
       href: "/appointments"

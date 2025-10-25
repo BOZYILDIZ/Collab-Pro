@@ -59,6 +59,13 @@ export const appRouter = router({
   }),
 
   users: router({
+    list: protectedProcedure
+      .query(async ({ ctx }) => {
+        // Get all users from the organization
+        const orgMembers = await db.getOrgMembers(1); // TODO: Get from org context
+        return orgMembers;
+      }),
+    
     search: protectedProcedure
       .input(z.object({ query: z.string() }))
       .query(async ({ input }) => {
@@ -956,6 +963,66 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await db.revokeInvitation(input.id);
         return { success: true };
+      }),
+  }),
+
+  // Dashboard
+  dashboard: router({
+    stats: protectedProcedure
+      .input(z.object({
+        orgId: z.number(),
+      }))
+      .query(async ({ ctx, input }) => {
+        // Get counts for dashboard
+        const [projects, notes, teamMembers, appointments] = await Promise.all([
+          db.getProjectsByOrg(input.orgId),
+          db.getUserNotes(ctx.user.id, input.orgId),
+          db.getOrgMembers(input.orgId),
+          db.getAppointmentRequests(ctx.user.id, input.orgId),
+        ]);
+        
+        // Count tasks from all projects
+        let totalTasks = 0;
+        for (const project of projects) {
+          const projectTasks = await db.getTasksByProject(project.id);
+          totalTasks += projectTasks.length;
+        }
+        
+        // Get user's calendars to fetch events
+        const calendars = await db.getUserCalendars(ctx.user.id, input.orgId);
+        let upcomingEventsCount = 0;
+        const now = new Date();
+        const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        for (const calendar of calendars) {
+          const events = await db.getCalendarEvents(calendar.id, now, nextWeek);
+          upcomingEventsCount += events.length;
+        }
+        
+        // Count pending appointments
+        const pendingAppointments = appointments.filter((a: any) => a.appointment.status === 'pending');
+        
+        // Count unread messages (simplified - count all recent messages)
+        const userChats = await db.getUserChats(ctx.user.id);
+        let unreadCount = 0;
+        for (const chat of userChats) {
+          const messages = await db.getChatMessages(chat.chat.id, 10);
+          // Count messages from others in the last 24h
+          const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          unreadCount += messages.filter((m: any) => 
+            m.message.userId !== ctx.user.id && 
+            new Date(m.message.createdAt) > yesterday
+          ).length;
+        }
+        
+        return {
+          unreadMessages: unreadCount,
+          activeNotes: notes.length,
+          upcomingEvents: upcomingEventsCount,
+          pendingAppointments: pendingAppointments.length,
+          totalProjects: projects.length,
+          totalTasks,
+          totalMembers: teamMembers.length,
+        };
       }),
   }),
 
