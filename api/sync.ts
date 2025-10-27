@@ -14,10 +14,57 @@ function sseHeaders() {
   });
 }
 
+/**
+ * Verify JWT token (optional, for room access control)
+ * Uncomment to enforce: const jwt = await verifyJWT(authHeader);
+ */
+async function verifyJWT(authHeader?: string) {
+  if (!authHeader?.startsWith('Bearer ')) return null;
+  const token = authHeader.slice(7);
+  const secret = process.env.JWT_SECRET || '';
+  try {
+    const [h, p, s] = token.split('.');
+    if (!h || !p || !s) return null;
+
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      enc.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+
+    const data = `${h}.${p}`;
+    const sigB64 = s.replace(/-/g, '+').replace(/_/g, '/');
+    const sig = Uint8Array.from(atob(sigB64), c => c.charCodeAt(0));
+
+    const ok = await crypto.subtle.verify('HMAC', key, sig, enc.encode(data));
+    if (!ok) return null;
+
+    const payload = JSON.parse(
+      atob(p.replace(/-/g, '+').replace(/_/g, '/'))
+    );
+
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      return null; // Token expired
+    }
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req: Request) {
   const url = new URL(req.url);
   const room = url.searchParams.get('room') || 'default';
   const uid = url.searchParams.get('uid') || crypto.randomUUID();
+  const authHeader = req.headers.get('authorization');
+
+  // Optional: Uncomment to enforce JWT validation
+  // const jwt = await verifyJWT(authHeader);
+  // if (!jwt) return new Response('unauthorized', { status: 401 });
 
   // POST: publish event to room
   if (req.method === 'POST') {
