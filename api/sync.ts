@@ -60,11 +60,14 @@ export default async function handler(req: Request) {
   const url = new URL(req.url);
   const room = url.searchParams.get('room') || 'default';
   const uid = url.searchParams.get('uid') || crypto.randomUUID();
-  const authHeader = req.headers.get('authorization');
 
-  // Optional: Uncomment to enforce JWT validation
-  // const jwt = await verifyJWT(authHeader);
-  // if (!jwt) return new Response('unauthorized', { status: 401 });
+  // JWT validation: check Authorization header OR querystring token
+  const authHeader = req.headers.get('authorization');
+  const qsToken = url.searchParams.get('token');
+  const finalAuthHeader = authHeader ?? (qsToken ? `Bearer ${qsToken}` : undefined);
+
+  const jwt = await verifyJWT(finalAuthHeader);
+  if (!jwt) return new Response('unauthorized', { status: 401 });
 
   // POST: publish event to room
   if (req.method === 'POST') {
