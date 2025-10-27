@@ -1,12 +1,40 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "functions": {
+    "api/*.ts": {
+      "runtime": "edge"
+    }
+  },
   "buildCommand": "vite build",
-  "outputDirectory": "dist/client",
-  "installCommand": "pnpm install",
+  "outputDirectory": "dist/public",
+  "installCommand": "pnpm install --frozen-lockfile",
   "framework": null,
-  "rewrites": [
+  "env": {
+    "DB_MODE": {
+      "description": "Database mode: embedded or managed",
+      "default": "embedded"
+    },
+    "JWT_SECRET": {
+      "description": "Secret for JWT signing (min 32 chars)",
+      "required": true
+    },
+    "JWT_TTL_SECONDS": {
+      "description": "JWT token TTL in seconds",
+      "default": "3600"
+    },
+    "STORAGE_PROVIDER": {
+      "description": "Storage provider: demo, blob, or s3",
+      "default": "demo"
+    }
+  },
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }

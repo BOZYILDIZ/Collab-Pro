@@ -13,7 +13,10 @@
     "test": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "seed": "tsx scripts/seed.ts",
-    "seed:templates": "tsx scripts/seed-templates.ts"
+    "seed:templates": "tsx scripts/seed-templates.ts",
+    "build:vercel": "vite build && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "seed:demo": "node scripts/seed-demo.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",
@@ -57,6 +60,7 @@
     "cookie": "^1.0.2",
     "cookie-parser": "^1.4.7",
     "date-fns": "^4.1.0",
+    "dexie": "^4.0.4",
     "dotenv": "^17.2.2",
     "drizzle-orm": "^0.44.5",
     "embla-carousel-react": "^8.6.0",
@@ -81,7 +85,10 @@
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
-    "zod": "^4.1.12"
+    "y-indexeddb": "^9.0.12",
+    "yjs": "^13.6.15",
+    "zod": "^4.1.12",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
     "@builder.io/vite-plugin-jsx-loc": "^0.1.1",
